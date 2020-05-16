@@ -1,0 +1,163 @@
+<project name="Lab3Web"
+         default="compile"
+         basedir="."
+         xmlns:ivy="antlib:org.apache.ivy.ant">
+
+    <property environment="env"/>
+
+    <!-- Подключение файла свойств -->
+    <property file="build.properties"/>
+    <!-- Создание каталогов для скомпилированных файлов -->
+    <target name="prepare" depends="clean">
+        <mkdir dir="${build.dir}"/>
+        <mkdir dir="${build.classes.dir}"/>
+        <mkdir dir="${build.war_dependencies.dir}"/>
+        <mkdir dir="${build.tests.dir}"/>
+        <mkdir dir="${build.report.dir}"/>
+    </target>
+
+    <path id="classpath.test">
+        <path refid="compile.path"/>
+        <path refid="war.path"/>
+        <pathelement location="${build.classes.dir}"/>
+    </path>
+
+
+    <target name="compile" depends="prepare,resolve">
+        <!-- Подготовка CLASSPATH для проведения компиляции -->
+        <!-- Включить в CLASSPATH все jar-файлы из каталогов
+      build/dependencies, исключив те, которые содержат документацию и исходники-->
+        <path id="classpath.build">
+            <fileset dir="${build.war_dependencies.dir}"
+                     includes="*.jar"
+                     excludes="**/*javadoc*.jar,**/*sources*.jar"/>
+        </path>
+        <!-- Запуск компилятора с указанием CLASSPATH(все библиотеки) и каталога, содержащего файлы исходного кода Java -->
+        <echo>Compiling main files ...</echo>
+        <javac destdir="${build.classes.dir}"
+               includeantruntime="false" encoding="${javac.encoding}">
+            <src path="${project.src.dir}"/>
+            <classpath refid="compile.path"></classpath>
+            <classpath refid="war.path"></classpath>
+        </javac>
+
+        <echo>Compiling test files ...</echo>
+        <javac destdir="${build.tests.dir}"
+               includeantruntime="false" encoding="${javac.encoding}">
+            <src path="${project.tests}"/>
+            <classpath refid="classpath.test"/>
+        </javac>
+
+    </target>
+
+    <!--Компиляция исходных кодов проекта и упаковка в исполняемый war-фрхив-->
+    <target name="build" depends="compile,javadoc">
+        <!--Копирование persistence.xml -->
+        <copy todir="${build.classes.dir}">
+            <fileset dir="${src.main.resources}"/>
+        </copy>
+
+        <fileset dir="${build.classes.dir}">
+            <include name="**/*.class"/>
+            <exclude name="**/CVS"/>
+        </fileset>
+
+        <echo>=====Make war file======</echo>
+        <war destfile="${build.output}/${output.war.name}.war"
+             webxml="${web.xml.file}">
+            <fileset dir="${webapp}"/>
+            <lib dir="${build.war_dependencies.dir}"/>
+            <classes dir="${build.classes.dir}"/>
+        </war>
+    </target>
+
+
+    <!--Удаление скомпилированных классов проекта и всех временных файлов-->
+    <target name="clean">
+        <echo>Clean Directory</echo>
+        <delete dir="${build.dir}"/>
+        <ivy:cleancache/>
+    </target>
+
+    <!--Запуск unit-test'ов проекта-->
+    <target name="test" depends="compile">
+        <echo>=== Test ===</echo>
+        <junit printsummary="on" haltonfailure="yes" fork="true">
+            <classpath>
+                <path refid="classpath.test"/>
+                <pathelement location="${build.tests.dir}"/>
+            </classpath>
+            <formatter type="brief" usefile="false"/>
+            <batchtest todir="${build.report.dir}">
+                <fileset dir="${build.tests.dir}" includes="**/*.java">
+                    <include name="**/*.class"/>
+                    <exclude name="**/*$*.class"/>
+                </fileset>
+            </batchtest>
+        </junit>
+    </target>
+
+    <!--Валидация всех xml-файлов проекта-->
+    <target name="xml">
+        <echo>=== XML Validate ===</echo>
+        <xmlvalidate failonerror="no" lenient="yes" warn="yes">
+            <fileset dir="${webapp}" includes="**/*.xml"/>
+        </xmlvalidate>
+    </target>
+
+    <!-- Создание документации javadoc-->
+    <target name="javadoc" depends="prepare,resolve">
+        <mkdir dir="${build.doc}"/>
+        <javadoc sourcepath="${src.dir}/main/java"
+                 destdir="${build.doc}"
+                 encoding="${javac.encoding}"
+                 charset="${javac.encoding}"
+                 author="${manifest.author}"
+                 version="${manifest.version}"
+                 windowtitle="My Lab3 Web"
+        >
+            <classpath refid="compile.path"></classpath>
+            <classpath refid="war.path"></classpath>
+        </javadoc>
+    </target>
+
+    <!--Осуществление сборки и запуска программы в альтернативных окружениях-->
+    <target name="env">
+
+    </target>
+
+    <target name="manifest">
+        <echo>=== Create MANIFEST.MF ===</echo>
+        <manifest file="${manifest.file}">
+            <attribute name="Built-By" value="${manifest.author}"/>
+            <attribute name="Build-Jdk" value="${manifest.jdk}"/>
+            <attribute name="Version" value="${manifest.version}"/>
+        </manifest>
+    </target>
+
+    <!--Менеджер зависимостей-->
+    <target name="resolve" depends="xml, init-ivy">
+        <!--поиск зависимостей в репозиториях-->
+        <ivy:resolve/>
+        <!--pathid - идентификатор пути к классам, где присутствуют кэшированные файлы(артефакты)-->
+        <ivy:cachepath pathid="compile.path" conf="compile"/>
+        <ivy:cachepath pathid="war.path" conf="war"/>
+        <!--скачивание зависимостей для заданной конфигурации и помещение в папку build/war_dependencies.dir-->
+        <ivy:retrieve pattern="${build.war_dependencies.dir}/[artifact].[ext]"
+                      sync="true" conf="war"/>
+    </target>
+
+    <target name="download-ivy" unless="offline">
+        <!--загрузите Ivy с веб-сайта, чтобы его можно было использовать даже без специальной установки-->
+        <mkdir dir="${ivy.dir}"/>
+        <get src="${ivy.url}" dest="${ivy.jar}" usetimestamp="true"/>
+    </target>
+
+    <target name="init-ivy" depends="download-ivy">
+        <path id="ivy.lib.path">
+            <fileset dir="${ivy.dir}" includes="*.jar"/>
+        </path>
+        <taskdef resource="org/apache/ivy/ant/antlib.xml" uri="antlib:org.apache.ivy.ant" classpathref="ivy.lib.path"/>
+    </target>
+
+</project>

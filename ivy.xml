@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ivy-module version="2.0">
+    <info organisation="itmo" module="web-lab"/>
+    <configurations>
+        <conf name="default" />
+        <conf name="compile" />
+        <conf name="war"/>
+    </configurations>
+    <dependencies>
+        <!-- https://mvnrepository.com/artifact/javax.faces/javax.faces-api -->
+        <dependency org="javax.faces" name="javax.faces-api" rev="2.3" conf="compile->default"/>
+        <!-- https://mvnrepository.com/artifact/javax/javaee-web-api -->
+        <dependency org="javax" name="javaee-web-api" rev="8.0.1" conf="compile->default"/>
+        <!-- https://mvnrepository.com/artifact/com.sun.faces/jsf-impl -->
+        <dependency org="com.sun.faces" name="jsf-impl" rev="2.2.20" conf="compile->default"/>
+        <!-- https://mvnrepository.com/artifact/org.postgresql/postgresql -->
+        <dependency org="org.postgresql" name="postgresql" rev="42.2.12" conf="war->default"/>
+        <!-- https://mvnrepository.com/artifact/org.primefaces/primefaces -->
+        <dependency org="org.primefaces" name="primefaces" rev="8.0" conf="war->default" />
+        <!-- https://mvnrepository.com/artifact/org.projectlombok/lombok -->
+        <dependency org="org.projectlombok" name="lombok" rev="1.18.12"  conf="compile->default" />
+        <!-- https://mvnrepository.com/artifact/org.hibernate.javax.persistence/hibernate-jpa-2.0-api -->
+        <dependency org="org.hibernate.javax.persistence" name="hibernate-jpa-2.0-api" rev="1.0.1.Final" conf="war->default"/>
+        <!-- https://mvnrepository.com/artifact/junit/junit -->
+        <dependency org="junit" name="junit" rev="4.12" conf="compile->default"/>
+
+        <!--<conflict manager="all"/>-->
+
+    </dependencies>
+</ivy-module>
